@@ -1,4 +1,4 @@
-package repository
+package controllers
 
 import (
 	"fmt"
@@ -83,42 +83,38 @@ func CreateTodo(ctx *gin.Context) {
 	ctx.JSON(http.StatusCreated, response)
 }
 
-//update todos
-
-func UpdateTodo(ctx *gin.Context) {
+// Update todo data
+func UpdateTodo(context *gin.Context) {
 	var data todoRequest
 
-	// defining request paramater to get id
-	reqParamId := ctx.Param("idTodo")
+	// Defining request parameter to get todo id
+	reqParamId := context.Param("idTodo")
 	idTodo := cast.ToUint(reqParamId)
 
-	//Binding request body json to request body struct
-	if err := ctx.BindJSON(&data); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
+	// Binding request body json to request body struct
+	if err := context.BindJSON(&data); err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	// initiate todo
+	// Initiate models todo
 	todo := models.Todo{}
 
-	//query find todo data by todo id from request parameter
-	todoByid := db.Where("id = ?", idTodo).First(&todo)
-	if todoByid.Error != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"error": "Todo not found",
-		})
+	// Querying find todo data by todo id from request parameter
+	todoById := db.Where("id = ?", idTodo).First(&todo)
+	if todoById.Error != nil {
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Todo not found"})
 		return
 	}
 
-	// update new todo data
+	// Matching todo request with todo models
+	todo.Name = data.Name
+	todo.Description = data.Description
+
+	// Update new todo data
 	result := db.Save(&todo)
-	fmt.Println(result)
 	if result.Error != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"error": "Something went Wrong",
-		})
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Something went wrong"})
 		return
 	}
 
@@ -128,24 +124,34 @@ func UpdateTodo(ctx *gin.Context) {
 	response.Name = todo.Name
 	response.Description = todo.Description
 
-	//Creating http response
-	ctx.JSON(http.StatusCreated, response)
+	// Creating http response
+	context.JSON(http.StatusCreated, response)
 }
 
-// delete todo
-
-func DeleteTodo(ctx *gin.Context) {
+// Delete todo data function
+func DeleteTodo(context *gin.Context) {
+	// Initiate todo models
 	todo := models.Todo{}
-
-	reqParamId := ctx.Param("idTodo")
+	// Getting request parameter id
+	reqParamId := context.Param("idTodo")
 	idTodo := cast.ToUint(reqParamId)
 
+	// Querying find todo data by todo id from request parameter
+	todoById := db.Where("id = ?", idTodo).First(&todo)
+	if todoById.Error != nil {
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Todo not found"})
+		return
+	}
+
+	// Querying delete todo by id
 	delete := db.Where("id = ?", idTodo).Unscoped().Delete(&todo)
 	fmt.Println(delete)
 
-	ctx.JSON(http.StatusOK, gin.H{
-		"statusCode": "200",
-		"message":    "Success",
-		"data":       idTodo,
+	// Creating http response
+	context.JSON(http.StatusOK, gin.H{
+		"status":  "200",
+		"message": "Success",
+		"data":    idTodo,
 	})
+
 }
